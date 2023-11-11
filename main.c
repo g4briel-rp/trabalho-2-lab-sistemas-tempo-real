@@ -1,38 +1,30 @@
 #include <stdio.h>
+#include <errno.h>
+#include <limits.h>
+#include <string.h>
 #include <pthread.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <time.h>
+#include "fila.h"
 
-#define MAX 9 /* Máximo de iterações */
 #define NUM_PEOPLE 9
 
-/* Mutex to protect the resource. */
-pthread_mutex_t mu = PTHREAD_MUTEX_INITIALIZER;
+// Pessoas
+// Vanda -> idosa
+// Valter -> marido de Vanda e idoso
+// Maria -> gravida
+// Marcos -> casado com Maria e carrega a filha no colo
+// Paula -> pé quebrado
+// Pedro -> noivo de Paula e está com o pé quebrado
+// Sueli -> pessoa comum
+// Silas -> namora com Sueli e é uma pessoa comum
 
-/*
-  Condition variable to signal consumer that a new number is available for
-  consumption.
-*/
-pthread_cond_t sig_consumer = PTHREAD_COND_INITIALIZER;
-/*
-  Condition variable to signal the producer that
-  (a) the new number has been consumed,
-  (b) generate another one.
-*/
-pthread_cond_t sig_producer = PTHREAD_COND_INITIALIZER;
-
-typedef struct
-{
-    int qtdUsoCaixa;
-    char nome[10];
-    int prioridade;
-    pthread_t thread;
-    // Outras informações relevantes para a pessoa
-} Pessoa;
-
-int number; /* the resource */
-Pessoa pessoas[NUM_PEOPLE];
+// Ordem de Prioridade
+// Gravida(ou com criança no colo) -> idoso
+// Idoso -> Deficiente
+// Deficiente -> Comum
+// Prioridade igual, usar ordem de chegada
 
 /** -------PARTE 1 DO TRABALHO
  * grávida  >   idoso
@@ -48,110 +40,127 @@ Pessoa pessoas[NUM_PEOPLE];
  * PComun   0
  */
 
-void *consumer(void *dummy)
-{
-    printf("Consumer : \"Hello I am consumer #%ld. Ready to consume numbers"
-           " now\"\n",
-           pthread_self());
+/* Mutex to protect the resource. */
+pthread_mutex_t mu = PTHREAD_MUTEX_INITIALIZER;
 
-    while (1)
-    {
-        pthread_mutex_lock(&mu);
-        /* Signal the producer that the consumer is ready. */
-        pthread_cond_signal(&sig_producer);
-        /* Wait for a new number. */
-        pthread_cond_wait(&sig_consumer, &mu);
-        /* Consume (print) the number. */
-        printf("Consumer : %d\n", number);
-        /* Unlock the mutex. */
-        pthread_mutex_unlock(&mu);
-
-        /*
-          If the MAX number was the last consumed number, the consumer should
-          stop.
-        */
-        if (number == MAX)
-        {
-            printf("Consumer done.. !!\n");
-            break;
-        }
-    }
-}
-
-/**
-  @func producer
-  This function is responsible for incrementing the number and signalling the
-  consumer.
+/*
+  Condition variable to signal consumer that a new number is available for
+  consumption.
 */
-void *producer(void *dummy)
+pthread_cond_t sig_gerente = PTHREAD_COND_INITIALIZER;
+/*
+  Condition variable to signal the producer that
+  (a) the new number has been consumed,
+  (b) generate another one.
+*/
+pthread_cond_t sig_cliente = PTHREAD_COND_INITIALIZER;
+
+typedef struct
 {
-    printf("Producer : \"Hello I am producer #%ld. Ready to produce numbers"
-           " now\"\n",
-           pthread_self());
+  char nome[10];
+  int prioridade;
+  int qtdUsoCaixa;
+  // Outras informações relevantes para a pessoa
+} Pessoa;
 
-    while (1)
-    {
-        pthread_mutex_lock(&mu);
-        number++;
-        printf("Producer : %d\n", number);
-        /*
-          Signal the consumer that a new number has been generated for its
-          consumption.
-        */
-        pthread_cond_signal(&sig_consumer);
-        /*
-          Now wait for consumer to confirm. Note, expect no confirmation for
-          consumption of MAX from consumer.
-        */
-        if (number != MAX)
-            pthread_cond_wait(&sig_producer, &mu);
+int number = 0; /* the resource */
+Pessoa pessoas[NUM_PEOPLE];
+FilaCircular fila;
 
-        /* Unlock the mutex. */
-        pthread_mutex_unlock(&mu);
-
-        /* Stop if MAX has been produced. */
-        if (number == MAX)
-        {
-            printf("Producer done.. !!\n");
-            break;
-        }
-    }
+// THREAD DO GERENTE
+void *atender_pessoa(void *arg)
+{
+  printf("Gerente : \"Hello I am gerente #%ld. Ready to atender pessoas now\"\n", pthread_self());
+  Pessoa p = *((Pessoa *)arg); // Converte-se o argumento para uma pessoa
 }
-int main()
+
+// THREAD DAS PESSOAS A SEREM ATENDIDAS
+void *solicitarAtendimento(void *arg)
 {
-    pthread_t monitor;
-    int i;
+  Pessoa p = *((Pessoa *)arg); // Converte-se o argumento para uma pessoa
+  printf("\"%s está na fila do caixa {fila: }\"\n", p.nome);
+}
 
-    // Inicialize as pessoas com prioridades e quantidade de uso do caixa
-    for (i = 0; i < NUM_PEOPLE; i++)
+// argc: quantidade de argumentos
+// argv: os argumentos em si
+int main(int argc, char *argv[])
+{
+  pthread_t monitor;
+  int rc, i;
+  pthread_t t[9];
+  srand(time(NULL)); // inicializa a semente do gerador de números aleatórios
+  initFilaCircular(&fila);
+
+  // ###############################-- ARGV PARA INTEIRO --####################################
+  char *p;
+  errno = 0; // not 'int errno', because the '#include' already defined it
+  long arg = strtol(argv[1], &p, 10);
+  if (*p != '\0' || errno != 0)
+  {
+    return 1; // In main(), returning non-zero means failure
+  }
+
+  if (arg < INT_MIN || arg > INT_MAX)
+  {
+    return 1;
+  }
+
+  int arg_int = arg;
+  // ###############################-- ARGV PARA INTEIRO --####################################
+
+  // nome, prioridade, qtdUsoCaixa
+  Pessoa pessoas[9] = {
+      {"gerente", -1, arg_int * 8},
+      {"Vanda", 1, arg_int},
+      {"Valter", 1, arg_int},
+      {"Maria", 0, arg_int},
+      {"Marcos", 0, arg_int},
+      {"Paula", 2, arg_int},
+      {"Pedro", 2, arg_int},
+      {"Sueli", 3, arg_int},
+      {"Silas", 3, arg_int},
+  };
+
+  printf("\n");
+
+  // Embaralhe aleatoriamente a ordem das pessoas que não são gerentes
+  srand(time(NULL));
+  for (i = NUM_PEOPLE - 1; i > 0; i--)
+  {
+    int j = rand() % (i + 1);
+
+    if (j != 0)
     {
-        pessoas[i].prioridade = i % 4; // Prioridade de 0 a 3
-        printf("Digite o nome da pessoa %d: ", i + 1);
-        scanf("%s", pessoas[i].nome);
-        printf("Digite a quantidade de vezes que a pessoa %s vai usar o caixa: ", pessoas[i].nome);
-        scanf("%d", &pessoas[i].qtdUsoCaixa);
+      Pessoa temp = pessoas[i];
+      pessoas[i] = pessoas[j];
+      pessoas[j] = temp;
     }
+  }
 
-    // Embaralhe aleatoriamente a ordem das pessoas
-    srand(time(NULL));
-    for (i = NUM_PEOPLE - 1; i > 0; i--)
+  for (int i = 0; i < 9; i++)
+  {
+    if (i == 0)
     {
-        int j = rand() % (i + 1);
-        Pessoa temp = pessoas[i];
-        pessoas[i] = pessoas[j];
-        pessoas[j] = temp;
+      if (pthread_create(&t[i], NULL, atender_pessoa, &pessoas[i]) != 0)
+      {
+        printf("Erro ao criar a thread da gerente %s\n", pessoas[i].nome);
+        return 1;
+      }
     }
+    else
+    {
+      if (pthread_create(&t[i], NULL, solicitarAtendimento, &pessoas[i]) != 0)
+      {
+        printf("Erro ao criar a thread da pessoa %s\n", pessoas[i].nome);
+        return 1;
+      }
+    }
+  }
 
-    /* Create consumer & producer threads. */
-    // if ((rc = pthread_create(&t[0], NULL, consumer, NULL)))
-    //     printf("Error creating the consumer thread..\n");
-    // if ((rc = pthread_create(&t[1], NULL, producer, NULL)))
-    //     printf("Error creating the producer thread..\n");
+  /* Wait for consumer/producer to exit. */
+  for (i = 0; i < 9; i++)
+    pthread_join(t[i], NULL);
 
-    // /* Wait for consumer/producer to exit. */
-    // for (i = 0; i < 2; i++)
-    //     pthread_join(t[i], NULL);
-
-    printf("Done..\n");
-    return 0;
+  printf("Done..\n");
+  return 0;
 }
