@@ -10,9 +10,9 @@ typedef struct
     char nome[10];
     int prioridade;
     int qtdUsoCaixa;
+    int indice;
     // Outras informações relevantes para a pessoa
 } Pessoa;
-
 typedef struct
 {
     Pessoa fila[MAX_SIZE];

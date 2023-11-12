@@ -53,7 +53,7 @@ pthread_cond_t sig_gerente = PTHREAD_COND_INITIALIZER;
   (a) the new number has been consumed,
   (b) generate another one.
 */
-pthread_cond_t sig_cliente = PTHREAD_COND_INITIALIZER;
+pthread_cond_t sig_cliente[8];
 
 int number = 0; /* the resource */
 Pessoa pessoas[NUM_PEOPLE];
@@ -67,8 +67,29 @@ FilaCircular fila;
 
 void *atender_pessoa(void *arg)
 {
-    printf("Gerente : \"Hello I am gerente #%ld. Ready to atender pessoas now\"\n", pthread_self());
     Pessoa p = *((Pessoa *)arg); // Converte-se o argumento para uma pessoa
+
+    while (1)
+    {
+        printf("%s está verificando a fila.\n", p.nome);
+        sleep(rand() % 5 + 1);
+        pthread_mutex_lock(&mu);
+        Pessoa pessoa = desenfileira(&fila);
+        printf("%s está sendo atendido.\n", pessoa.nome);
+        sleep(rand() % 5 + 1);
+        printf("%s foi embora.\n", pessoa.nome);
+        pthread_mutex_unlock(&mu);
+
+        pthread_cond_signal(&sig_cliente[pessoa.indice]);
+        pthread_cond_wait(&sig_gerente, &mu);
+        p.qtdUsoCaixa--;
+
+        if (p.qtdUsoCaixa == 0)
+        {
+            printf("Todos foram atendidos.\n");
+            break;
+        }
+    }
 }
 
 // THREAD DAS PESSOAS A SEREM ATENDIDAS
@@ -81,26 +102,42 @@ void *atender_pessoa(void *arg)
 void *solicitarAtendimento(void *arg)
 {
     Pessoa p = *((Pessoa *)arg); // Converte-se o argumento para uma pessoa
-    printf("\"%s está na fila do caixa {fila: }\"\n", p.nome);
+
+    while (p.qtdUsoCaixa > 0)
+    {
+        pthread_mutex_lock(&mu);
+        printf("%s está esperando para ser atendido.\n", p.nome);
+        enfileira(&fila, p);
+        printFila(&fila);
+        pthread_mutex_unlock(&mu);
+
+        pthread_cond_signal(&sig_gerente);
+        pthread_cond_wait(&sig_cliente[p.indice], &mu);
+        p.qtdUsoCaixa--;
+    }
 }
 
 // argc: quantidade de argumentos
 // argv: os argumentos em si
 int main(int argc, char *argv[])
 {
-    pthread_t monitor;
     int rc, i;
     pthread_t t[9];
+
+    for (int i = 0; i < 8; i++)
+    {
+        pthread_cond_init(&sig_cliente[i], NULL);
+    }
+
     srand(time(NULL)); // inicializa a semente do gerador de números aleatórios
-    initFilaCircular(&fila);
 
     // ###############################-- ARGV PARA INTEIRO --####################################
     char *p;
-    errno = 0; // not 'int errno', because the '#include' already defined it
+    errno = 0;
     long arg = strtol(argv[1], &p, 10);
     if (*p != '\0' || errno != 0)
     {
-        return 1; // In main(), returning non-zero means failure
+        return 1;
     }
 
     if (arg < INT_MIN || arg > INT_MAX)
@@ -113,15 +150,15 @@ int main(int argc, char *argv[])
 
     // nome, prioridade, qtdUsoCaixa
     Pessoa pessoas[9] = {
-        {"gerente", -1, arg_int * 8},
-        {"Vanda", 1, arg_int},
-        {"Valter", 1, arg_int},
-        {"Maria", 0, arg_int},
-        {"Marcos", 0, arg_int},
-        {"Paula", 2, arg_int},
-        {"Pedro", 2, arg_int},
-        {"Sueli", 3, arg_int},
-        {"Silas", 3, arg_int},
+        {"gerente", -1, arg_int * 8, -1},
+        {"Vanda", 1, arg_int, 0},
+        {"Valter", 1, arg_int, 1},
+        {"Maria", 0, arg_int, 2},
+        {"Marcos", 0, arg_int, 3},
+        {"Paula", 2, arg_int, 4},
+        {"Pedro", 2, arg_int, 5},
+        {"Sueli", 3, arg_int, 6},
+        {"Silas", 3, arg_int, 7},
     };
 
     printf("\n");
@@ -160,7 +197,6 @@ int main(int argc, char *argv[])
         }
     }
 
-    /* Wait for consumer/producer to exit. */
     for (i = 0; i < 9; i++)
         pthread_join(t[i], NULL);
 
