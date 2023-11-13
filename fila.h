@@ -3,125 +3,151 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define MAX_SIZE 10
+#define PESSOAS 9
+#define CLIENTES 8
 
-typedef struct
+typedef struct Pessoa
 {
     char nome[10];
     int prioridade;
     int qtdUsoCaixa;
     int indice;
     // Outras informações relevantes para a pessoa
+    struct Pessoa *proxima;
 } Pessoa;
-typedef struct
+typedef struct FilaCircular
 {
-    Pessoa fila[MAX_SIZE];
-    int front, rear;
+    Pessoa *frente;
+    Pessoa *tras;
+    int tamanho;
 } FilaCircular;
 
-void initFilaCircular(FilaCircular *fila)
+FilaCircular *criarFila()
 {
-    fila->front = 0;
-    fila->rear = 0;
+    FilaCircular *fila = (FilaCircular *)malloc(sizeof(FilaCircular));
+    if (fila == NULL)
+    {
+        // Tratamento de erro, falha na alocação de memória
+        return NULL;
+    }
+
+    fila->frente = NULL;
+    fila->tras = NULL;
+    fila->tamanho = 0;
+
+    return fila;
 }
 
-int filaVazia(FilaCircular *fila)
+int estaVazia(FilaCircular *fila)
 {
-    return (fila->front == fila->rear);
+    return (fila->frente == NULL);
 }
 
 int filaCheia(FilaCircular *fila)
 {
-    return ((fila->rear + 1) % MAX_SIZE == fila->front);
+    return (fila->tamanho == CLIENTES);
 }
 
 int tamanhoFila(FilaCircular *fila)
 {
-    if (filaVazia(fila))
-    {
-        return 0;
-    }
-
-    if (fila->front < fila->rear)
-    {
-        return fila->rear - fila->front;
-    }
-    else
-    {
-        return MAX_SIZE - fila->front + fila->rear;
-    }
+    return fila->tamanho;
 }
 
 void enfileira(FilaCircular *fila, Pessoa pessoa)
 {
-    if (filaCheia(fila))
-    {
-        printf("Fila cheia!\n");
-        return;
-    }
+    Pessoa *novaPessoa = (Pessoa *)malloc(sizeof(Pessoa));
 
-    fila->fila[fila->rear] = pessoa;
-    fila->rear = (fila->rear + 1) % MAX_SIZE;
+    // eu só posso enfileirar alguem se a fila não estiver cheia
+    if (!filaCheia(fila))
+    {
+        if (novaPessoa == NULL)
+        {
+            // Tratamento de erro, falha na alocação de memória
+            return;
+        }
+        *novaPessoa = pessoa;
+        novaPessoa->proxima = NULL;
+
+        if (estaVazia(fila) || pessoa.prioridade < fila->frente->prioridade)
+        {
+            // Caso a fila esteja vazia ou a nova pessoa tenha prioridade mais alta que a primeira da fila,
+            // insira a nova pessoa no início da fila.
+            novaPessoa->proxima = fila->frente;
+            fila->frente = novaPessoa;
+        }
+        else
+        {
+            // Caso contrário, percorra a fila para encontrar a posição correta.
+            Pessoa *atual = fila->frente;
+            while (atual->proxima != NULL && atual->proxima->prioridade <= pessoa.prioridade)
+            {
+                atual = atual->proxima;
+            }
+            novaPessoa->proxima = atual->proxima;
+            atual->proxima = novaPessoa;
+        }
+
+        if (novaPessoa->proxima == NULL)
+        {
+            // Se a nova pessoa estiver no final da fila, atualize fila->tras.
+            fila->tras = novaPessoa;
+        }
+
+        fila->tamanho++;
+    }
 }
 
 Pessoa desenfileira(FilaCircular *fila)
 {
-    Pessoa pessoa;
-
-    if (filaVazia(fila))
+    Pessoa pessoaRemovida;
+    if (!estaVazia(fila))
     {
-        printf("Fila vazia!\n");
-        pessoa.prioridade = -1;
-        return pessoa;
+        Pessoa *temp = fila->frente;
+        fila->frente = fila->frente->proxima;
+        pessoaRemovida = *temp;
+        free(temp);
+        fila->tamanho--;
     }
-
-    pessoa = fila->fila[fila->front];
-    fila->front = (fila->front + 1) % MAX_SIZE;
-
-    return pessoa;
-}
-
-int compara(const void *a, const void *b)
-{
-    return ((Pessoa *)a)->prioridade - ((Pessoa *)b)->prioridade;
-}
-
-void ordena(FilaCircular *fila)
-{
-    int tam = tamanhoFila(fila);
-    Pessoa *array = malloc(tam * sizeof(int));
-
-    for (int i = 0; i < tam; i++)
+    else
     {
-        array[i] = desenfileira(fila);
+        // Tratamento de erro, a fila está vazia
+        pessoaRemovida.nome[0] = '\0'; // Inicializa o nome como uma string vazia
     }
-
-    qsort(array, tam, sizeof(Pessoa), compara);
-
-    for (int i = 0; i < tam; i++)
-    {
-        enfileira(fila, array[i]);
-    }
-
-    free(array);
+    return pessoaRemovida;
 }
 
 void printFila(FilaCircular *fila)
 {
-    int i;
-
-    if (filaVazia(fila))
+    if (fila == NULL || estaVazia(fila))
     {
-        printf("Fila vazia!\n");
+        printf("A fila está vazia.\n");
         return;
     }
 
-    printf("Fila: ");
-    for (i = fila->front; i != fila->rear; i = (i + 1) % MAX_SIZE)
+    Pessoa *atual = fila->frente;
+
+    printf("--------------FILA--------------\n");
+
+    while (atual != NULL)
     {
-        printf("%s ", fila->fila[i].nome);
+        printf("%s\t", atual->nome);
+        atual = atual->proxima;
     }
-    printf("\n");
+    printf("\n--------------------------------\n");
+}
+
+void destruirFila(FilaCircular *fila)
+{
+    if (fila != NULL)
+    {
+        while (fila->frente != NULL)
+        {
+            Pessoa *temp = fila->frente;
+            fila->frente = fila->frente->proxima;
+            free(temp);
+        }
+        free(fila);
+    }
 }
 
 #endif

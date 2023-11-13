@@ -4,40 +4,33 @@
 
 int main()
 {
-    FilaCircular fila;
-    initFilaCircular(&fila);
+    // Crie a fila
+    FilaCircular *fila = criarFila();
 
-    Pessoa pessoas[9] = {
-        {"gerente", 4, 0},
-        {"Vanda", 1, 0},
-        {"Valter", 1, 0},
-        {"Maria", 0, 0},
-        {"Marcos", 0, 0},
-        {"Paula", 2, 0},
-        {"Pedro", 2, 0},
-        {"Sueli", 3, 0},
-        {"Silas", 3, 0},
-    };
+    // Preencha a fila com algumas pessoas
+    Pessoa pessoa1 = {"Alice", 3, 5, 1, NULL};
+    Pessoa pessoa2 = {"Bob", 1, 2, 2, NULL};
+    Pessoa pessoa3 = {"Charlie", 2, 1, 3, NULL};
 
-    while (1)
-    {
-        if (filaVazia(&fila))
-        {
-            printf("Fila vazia!\n");
-        }
-        else if (filaCheia(&fila))
-        {
-            printf("Fila cheia!\n");
-            break;
-        }
+    printFila(fila);
 
-        for (int i = 0; i < 9; i++)
-        {
-            enfileira(&fila, pessoas[i]);
-            printf("%d\n", tamanhoFila(&fila));
-            printFila(&fila);
-            ordena(&fila);
-            printFila(&fila);
-        }
-    }
+    enfileira(fila, pessoa1);
+    enfileira(fila, pessoa2);
+    enfileira(fila, pessoa3);
+
+    // Imprima a fila
+    printFila(fila);
+
+    // Desenfileire uma pessoa
+    Pessoa pessoaRemovida = desenfileira(fila);
+    printf("\nPessoa desenfileirada: %s\n", pessoaRemovida.nome);
+
+    // Imprima a fila após a desenfileiração
+    printf("\nFila após desenfileirar uma pessoa:\n");
+    printFila(fila);
+
+    // Libere a memória alocada para a fila
+    destruirFila(fila);
+
+    return 0;
 }
