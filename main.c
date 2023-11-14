@@ -1,12 +1,12 @@
-#include <stdio.h>
+#include "fila.h"
 #include <errno.h>
 #include <limits.h>
-#include <string.h>
 #include <pthread.h>
-#include <unistd.h>
+#include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <time.h>
-#include "fila.h"
+#include <unistd.h>
 
 #define NUM_PEOPLE 9
 
@@ -54,6 +54,7 @@ pthread_cond_t sig_gerente = PTHREAD_COND_INITIALIZER;
   (b) generate another one.
 */
 pthread_cond_t sig_cliente[8];
+;
 
 int number = 0; /* the resource */
 Pessoa pessoas[NUM_PEOPLE];
@@ -71,18 +72,30 @@ void *atender_pessoa(void *arg)
 
     while (1)
     {
-        printf("%s está verificando a fila.\n", p.nome);
-        sleep(rand() % 5 + 1);
         pthread_mutex_lock(&mu);
+
+        while (tamanhoFila(&fila) == 0)
+        {
+            pthread_cond_wait(&sig_gerente, &mu);
+        }
+
+        printf("%s está verificando a fila.\n", p.nome);
+
+        sleep(3);
+
         Pessoa pessoa = desenfileira(&fila);
+
         printf("%s está sendo atendido.\n", pessoa.nome);
-        sleep(rand() % 5 + 1);
+
+        sleep(1);
+
         printf("%s foi embora.\n", pessoa.nome);
-        pthread_mutex_unlock(&mu);
+
+        p.qtdUsoCaixa--;
 
         pthread_cond_signal(&sig_cliente[pessoa.indice]);
-        pthread_cond_wait(&sig_gerente, &mu);
-        p.qtdUsoCaixa--;
+
+        pthread_mutex_unlock(&mu);
 
         if (p.qtdUsoCaixa == 0)
         {
@@ -106,14 +119,25 @@ void *solicitarAtendimento(void *arg)
     while (p.qtdUsoCaixa > 0)
     {
         pthread_mutex_lock(&mu);
+
         printf("%s está esperando para ser atendido.\n", p.nome);
+
         enfileira(&fila, p);
+
         printFila(&fila);
-        pthread_mutex_unlock(&mu);
 
         pthread_cond_signal(&sig_gerente);
-        pthread_cond_wait(&sig_cliente[p.indice], &mu);
+
+        while (primeira_da_fila(&fila).nome == p.nome)
+        {
+            pthread_cond_wait(&sig_cliente[p.indice], &mu);
+        }
+
         p.qtdUsoCaixa--;
+
+        pthread_mutex_unlock(&mu);
+
+        sleep(5);
     }
 }
 
@@ -124,14 +148,15 @@ int main(int argc, char *argv[])
     int rc, i;
     pthread_t t[9];
 
-    for (int i = 0; i < 8; i++)
+    for (int j = 0; j < 8; j++)
     {
-        pthread_cond_init(&sig_cliente[i], NULL);
+        pthread_cond_init(&sig_cliente[j], NULL);
     }
 
     srand(time(NULL)); // inicializa a semente do gerador de números aleatórios
 
-    // ###############################-- ARGV PARA INTEIRO --####################################
+    // ###############################-- ARGV PARA INTEIRO
+    // --####################################
     char *p;
     errno = 0;
     long arg = strtol(argv[1], &p, 10);
@@ -146,7 +171,8 @@ int main(int argc, char *argv[])
     }
 
     int arg_int = arg;
-    // ###############################-- ARGV PARA INTEIRO --####################################
+    // ###############################-- ARGV PARA INTEIRO
+    // --####################################
 
     // nome, prioridade, qtdUsoCaixa
     Pessoa pessoas[9] = {

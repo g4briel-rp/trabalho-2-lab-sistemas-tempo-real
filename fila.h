@@ -97,6 +97,20 @@ void enfileira(FilaCircular *fila, Pessoa pessoa)
     }
 }
 
+Pessoa primeira_da_fila(FilaCircular *fila)
+{
+    Pessoa pessoa;
+    if (!estaVazia(fila))
+    {
+        pessoa = *(fila->frente);
+    }
+    else
+    {
+        pessoa.nome[0] = '\0'; // Inicializa o nome como uma string vazia
+    }
+    return pessoa;
+}
+
 Pessoa desenfileira(FilaCircular *fila)
 {
     Pessoa pessoaRemovida;
