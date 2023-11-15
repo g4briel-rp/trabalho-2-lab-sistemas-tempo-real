@@ -9,9 +9,6 @@
 #include <unistd.h>
 
 #define NUM_PEOPLE 9
-#define liberacao 1
-#define atendimento 1
-#define voltinha 1
 
 // Pessoas
 // Vanda -> idosa
@@ -45,8 +42,21 @@
 
 /* Mutex to protect the resource. */
 pthread_mutex_t mu = PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t cliente[8];
 
+/*
+  Condition variable to signal consumer that a new number is available for
+  consumption.
+*/
+pthread_cond_t sig_gerente = PTHREAD_COND_INITIALIZER;
+/*
+  Condition variable to signal the producer that
+  (a) the new number has been consumed,
+  (b) generate another one.
+*/
+pthread_cond_t sig_cliente[8];
+;
+
+int number = 0; /* the resource */
 Pessoa pessoas[NUM_PEOPLE];
 FilaCircular fila;
 
@@ -60,37 +70,30 @@ void *atender_pessoa(void *arg)
 {
     Pessoa p = *((Pessoa *)arg); // Converte-se o argumento para uma pessoa
 
-    for (int k = 0; k < 8; k++)
-    {
-        pthread_mutex_lock(&cliente[k]);
-    }
-
     while (1)
     {
         pthread_mutex_lock(&mu);
 
         if (tamanhoFila(&fila) == 0)
         {
-            pthread_mutex_unlock(&mu);
-            sleep(5);
-            continue;
+            pthread_cond_wait(&sig_gerente, &mu);
         }
 
         printf("%s está verificando a fila.\n", p.nome);
 
-        sleep(atendimento);
+        sleep(3);
 
         Pessoa pessoa = desenfileira(&fila);
 
-        pthread_mutex_unlock(&mu);
-
         printf("%s está sendo atendido.\n", pessoa.nome);
 
-        sleep(liberacao);
+        sleep(1);
 
         printf("%s foi embora.\n", pessoa.nome);
 
-        pthread_mutex_unlock(&cliente[pessoa.indice]);
+        pthread_cond_signal(&sig_cliente[pessoa.indice]);
+
+        pthread_mutex_unlock(&mu);
 
         p.qtdUsoCaixa--;
 
@@ -121,15 +124,17 @@ void *solicitarAtendimento(void *arg)
 
         printFila(&fila);
 
-        pthread_mutex_unlock(&mu);
-
         printf("%s está esperando para ser atendido.\n", p.nome);
 
-        pthread_mutex_lock(&cliente[p.indice]);
+        pthread_cond_signal(&sig_gerente);
+
+        pthread_cond_wait(&sig_cliente[p.indice], &mu);
+
+        pthread_mutex_unlock(&mu);
 
         p.qtdUsoCaixa--;
 
-        sleep(voltinha);
+        sleep(5);
     }
 }
 
@@ -142,7 +147,7 @@ int main(int argc, char *argv[])
 
     for (int j = 0; j < 8; j++)
     {
-        pthread_mutex_init(&cliente[j], NULL);
+        pthread_cond_init(&sig_cliente[j], NULL);
     }
 
     srand(time(NULL)); // inicializa a semente do gerador de números aleatórios

@@ -2,6 +2,7 @@
 #define FILA_H
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #define PESSOAS 9
 #define CLIENTES 8
@@ -51,6 +52,20 @@ int filaCheia(FilaCircular *fila)
 int tamanhoFila(FilaCircular *fila)
 {
     return fila->tamanho;
+}
+
+int estaNaFila(FilaCircular *fila, Pessoa pessoa)
+{
+    Pessoa *atual = fila->frente;
+    while (atual != NULL)
+    {
+        if (strcmp(atual->nome, pessoa.nome) == 0)
+        {
+            return 1;
+        }
+        atual = atual->proxima;
+    }
+    return 0;
 }
 
 void enfileira(FilaCircular *fila, Pessoa pessoa)
