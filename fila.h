@@ -101,14 +101,11 @@ void enfileira(FilaCircular *fila, Pessoa pessoa)
 
             while (aux != NULL)
             {
-                if (aux->frustracao++ == 2)
+                aux->frustracao++;
+                if (aux->frustracao == 2)
                 {
                     aux->prioridade--;
                     aux->frustracao = 0;
-                }
-                else
-                {
-                    aux->frustracao++;
                 }
                 aux = aux->proxima;
             }
@@ -129,18 +126,13 @@ void enfileira(FilaCircular *fila, Pessoa pessoa)
             Pessoa *temp = novaPessoa->proxima;
             while (temp != NULL)
             {
-                if (temp->frustracao++ == 2)
+                temp->frustracao++;
+                if (temp->frustracao == 2)
                 {
-                    printf("frustacao 2 aqui.\n");
                     temp->prioridade--;
                     temp->frustracao = 0;
                 }
-                else
-                {
-                    printf("frustacao diferente de 2 aqui.\n");
-                    temp->frustracao++;
-                    temp = temp->proxima;
-                }
+                temp = temp->proxima;
             }
         }
 
@@ -223,14 +215,14 @@ void printFila(FilaCircular *fila)
 
     Pessoa *atual = fila->frente;
 
-    printf("--------------FILA--------------\n");
+    printf("----------------------------FILA----------------------------\n");
 
     while (atual != NULL)
     {
         printf("%s\tfrustracao: %d\tprioridade: %d\n", atual->nome, atual->frustracao, atual->prioridade);
         atual = atual->proxima;
     }
-    printf("\n--------------------------------\n");
+    printf("------------------------------------------------------------\n");
 }
 
 void destruirFila(FilaCircular *fila)

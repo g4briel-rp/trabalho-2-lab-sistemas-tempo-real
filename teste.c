@@ -30,6 +30,9 @@ int main()
     enfileira(fila, pessoa7);
     printFila(fila);
 
+    enfileira(fila, pessoa6);
+    printFila(fila);
+
     Pessoa teste1 = desenfileira(fila);
     Pessoa teste2 = desenfileira(fila);
     Pessoa teste3 = desenfileira(fila);

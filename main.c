@@ -10,31 +10,8 @@
 
 #define NUM_PEOPLE 9
 #define liberacao 1
-#define atendimento 1
-#define voltinha 1
-
-// Pessoas
-// Vanda -> idosa
-// Valter -> marido de Vanda e idoso
-// Maria -> gravida
-// Marcos -> casado com Maria e carrega a filha no colo
-// Paula -> pé quebrado
-// Pedro -> noivo de Paula e está com o pé quebrado
-// Sueli -> pessoa comum
-// Silas -> namora com Sueli e é uma pessoa comum
-
-// Ordem de Prioridade
-// Gravida(ou com criança no colo) -> idoso
-// Idoso -> Deficiente
-// Deficiente -> Comum
-// Prioridade igual, usar ordem de chegada
-
-/** -------PARTE 1 DO TRABALHO
- * grávida  >   idoso
- * idoso    >   PCD
- * PCD      >   PComun
- * PComun   0
- */
+#define atendimento 3
+#define voltinha 5
 
 /** -------PARTE 2 DO TRABALHO
  * grávida  >   idoso
@@ -49,12 +26,6 @@ pthread_mutex_t cliente[8];
 
 Pessoa pessoas[NUM_PEOPLE];
 FilaCircular fila;
-
-// THREAD DO GERENTE
-
-// enquanto pessoas estao ativas faça:
-// sleep(INTERVALO_VERIFICACAO);
-// caixa.verificar();
 
 void *atender_pessoa(void *arg)
 {
@@ -76,7 +47,7 @@ void *atender_pessoa(void *arg)
             continue;
         }
 
-        printf("%s está verificando a fila.\n", p.nome);
+        printf("\n%s está verificando a fila.\n", p.nome);
 
         sleep(atendimento);
 
@@ -102,13 +73,6 @@ void *atender_pessoa(void *arg)
     }
 }
 
-// THREAD DAS PESSOAS A SEREM ATENDIDAS
-
-// caixa.esperar(p); //exige mutex
-// atendido_pelo_caixa(p); //nao exige exclusao mútua
-// caixa.liberar(p); //exige mutex
-// vai_embora_para_casa(p); //espera um certo tempo aleatório
-
 void *solicitarAtendimento(void *arg)
 {
     Pessoa p = *((Pessoa *)arg); // Converte-se o argumento para uma pessoa
@@ -119,7 +83,9 @@ void *solicitarAtendimento(void *arg)
 
         enfileira(&fila, p);
 
+        printf("\n");
         printFila(&fila);
+        printf("\n");
 
         pthread_mutex_unlock(&mu);
 
@@ -133,8 +99,6 @@ void *solicitarAtendimento(void *arg)
     }
 }
 
-// argc: quantidade de argumentos
-// argv: os argumentos em si
 int main(int argc, char *argv[])
 {
     int rc, i;
@@ -167,14 +131,14 @@ int main(int argc, char *argv[])
     // nome, prioridade, qtdUsoCaixa
     Pessoa pessoas[9] = {
         {"gerente", -1, arg_int * 8, -1},
-        {"Vanda", 1, arg_int, 0},
-        {"Valter", 1, arg_int, 1},
-        {"Maria", 0, arg_int, 2},
-        {"Marcos", 0, arg_int, 3},
-        {"Paula", 2, arg_int, 4},
-        {"Pedro", 2, arg_int, 5},
-        {"Sueli", 3, arg_int, 6},
-        {"Silas", 3, arg_int, 7},
+        {"Vanda", 1, arg_int, 0, 2, 0},
+        {"Valter", 1, arg_int, 1, 2, 0},
+        {"Maria", 0, arg_int, 2, 1, 0},
+        {"Marcos", 0, arg_int, 3, 1, 0},
+        {"Paula", 2, arg_int, 4, 3, 0},
+        {"Pedro", 2, arg_int, 5, 3, 0},
+        {"Sueli", 3, arg_int, 6, 4, 0},
+        {"Silas", 3, arg_int, 7, 4, 0},
     };
 
     printf("\n");
@@ -216,6 +180,6 @@ int main(int argc, char *argv[])
     for (i = 0; i < 9; i++)
         pthread_join(t[i], NULL);
 
-    printf("Done..\n");
+    printf("Fim da execução!!!\n");
     return 0;
 }
