@@ -13,6 +13,8 @@ typedef struct Pessoa
     int prioridade;
     int qtdUsoCaixa;
     int indice;
+    int tipo; // 1: gravida, 2: idoso, 3: pcd, 4: pessoa comum
+    int frustracao;
     // Outras informações relevantes para a pessoa
     struct Pessoa *proxima;
 } Pessoa;
@@ -71,6 +73,7 @@ int estaNaFila(FilaCircular *fila, Pessoa pessoa)
 void enfileira(FilaCircular *fila, Pessoa pessoa)
 {
     Pessoa *novaPessoa = (Pessoa *)malloc(sizeof(Pessoa));
+    Pessoa *aux;
 
     // eu só posso enfileirar alguem se a fila não estiver cheia
     if (!filaCheia(fila))
@@ -83,12 +86,32 @@ void enfileira(FilaCircular *fila, Pessoa pessoa)
         *novaPessoa = pessoa;
         novaPessoa->proxima = NULL;
 
-        if (estaVazia(fila) || pessoa.prioridade < fila->frente->prioridade)
+        if (estaVazia(fila))
         {
             // Caso a fila esteja vazia ou a nova pessoa tenha prioridade mais alta que a primeira da fila,
             // insira a nova pessoa no início da fila.
             novaPessoa->proxima = fila->frente;
             fila->frente = novaPessoa;
+        }
+        else if (novaPessoa->prioridade < fila->frente->prioridade)
+        {
+            aux = fila->frente;
+            fila->frente = novaPessoa;
+            novaPessoa->proxima = aux;
+
+            while (aux != NULL)
+            {
+                if (aux->frustracao++ == 2)
+                {
+                    aux->prioridade--;
+                    aux->frustracao = 0;
+                }
+                else
+                {
+                    aux->frustracao++;
+                }
+                aux = aux->proxima;
+            }
         }
         else
         {
@@ -96,10 +119,29 @@ void enfileira(FilaCircular *fila, Pessoa pessoa)
             Pessoa *atual = fila->frente;
             while (atual->proxima != NULL && atual->proxima->prioridade <= pessoa.prioridade)
             {
+
                 atual = atual->proxima;
             }
             novaPessoa->proxima = atual->proxima;
             atual->proxima = novaPessoa;
+
+            // Incrementa a frustração para todas as pessoas a partir da nova pessoa até o final da fila.
+            Pessoa *temp = novaPessoa->proxima;
+            while (temp != NULL)
+            {
+                if (temp->frustracao++ == 2)
+                {
+                    printf("frustacao 2 aqui.\n");
+                    temp->prioridade--;
+                    temp->frustracao = 0;
+                }
+                else
+                {
+                    printf("frustacao diferente de 2 aqui.\n");
+                    temp->frustracao++;
+                    temp = temp->proxima;
+                }
+            }
         }
 
         if (novaPessoa->proxima == NULL)
@@ -140,8 +182,34 @@ Pessoa desenfileira(FilaCircular *fila)
     else
     {
         // Tratamento de erro, a fila está vazia
+        printf("A fila esta vazia!\n\n");
         pessoaRemovida.nome[0] = '\0'; // Inicializa o nome como uma string vazia
     }
+    // sempre que atender uma pessoa, sua frustação é zerada e sua prioridade volta ao normal
+    pessoaRemovida.frustracao = 0;
+
+    switch (pessoaRemovida.tipo)
+    {
+    case 1:
+        // code
+        pessoaRemovida.prioridade = 0;
+        break;
+    case 2:
+        // code
+        pessoaRemovida.prioridade = 1;
+        break;
+    case 3:
+        // code
+        pessoaRemovida.prioridade = 2;
+        break;
+    case 4:
+        // code
+        pessoaRemovida.prioridade = 3;
+        break;
+    default:
+        break;
+    }
+
     return pessoaRemovida;
 }
 
@@ -159,7 +227,7 @@ void printFila(FilaCircular *fila)
 
     while (atual != NULL)
     {
-        printf("%s\t", atual->nome);
+        printf("%s\tfrustracao: %d\tprioridade: %d\n", atual->nome, atual->frustracao, atual->prioridade);
         atual = atual->proxima;
     }
     printf("\n--------------------------------\n");

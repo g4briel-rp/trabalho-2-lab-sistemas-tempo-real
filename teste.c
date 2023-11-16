@@ -8,25 +8,33 @@ int main()
     FilaCircular *fila = criarFila();
 
     // Preencha a fila com algumas pessoas
-    Pessoa pessoa1 = {"Alice", 3, 5, 1, NULL};
-    Pessoa pessoa2 = {"Bob", 1, 2, 2, NULL};
-    Pessoa pessoa3 = {"Charlie", 2, 1, 3, NULL};
+    Pessoa pessoa1 = {"Gravida", 0, 5, 1, 1, 0, NULL};
+    Pessoa pessoa2 = {"idoso", 1, 2, 2, 2, 0, NULL};
+    Pessoa pessoa3 = {"PCD", 2, 1, 3, 3, 0, NULL};
+    Pessoa pessoa4 = {"P comum", 3, 1, 4, 4, 0, NULL};
 
+    Pessoa pessoa5 = {"Gravida1", 0, 5, 1, 1, 0, NULL};
+    Pessoa pessoa6 = {"idoso1", 1, 2, 2, 2, 0, NULL};
+    Pessoa pessoa7 = {"PCD1", 2, 1, 3, 3, 0, NULL};
+    Pessoa pessoa8 = {"P comum1", 3, 1, 4, 4, 0, NULL};
+
+    enfileira(fila, pessoa4);
     printFila(fila);
 
-    enfileira(fila, pessoa1);
-    enfileira(fila, pessoa2);
     enfileira(fila, pessoa3);
-
-    // Imprima a fila
     printFila(fila);
 
-    // Desenfileire uma pessoa
-    Pessoa pessoaRemovida = desenfileira(fila);
-    printf("\nPessoa desenfileirada: %s\n", pessoaRemovida.nome);
+    enfileira(fila, pessoa2);
+    printFila(fila);
 
-    // Imprima a fila após a desenfileiração
-    printf("\nFila após desenfileirar uma pessoa:\n");
+    enfileira(fila, pessoa7);
+    printFila(fila);
+
+    Pessoa teste1 = desenfileira(fila);
+    Pessoa teste2 = desenfileira(fila);
+    Pessoa teste3 = desenfileira(fila);
+
+    enfileira(fila, teste3);
     printFila(fila);
 
     // Libere a memória alocada para a fila
