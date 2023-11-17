@@ -4,7 +4,7 @@ main: main.c
 	gcc main.c -o main
 
 run: main
-	./main $(ARGS)
+	./main 1
 
 clean:
 	rm main
