@@ -221,6 +221,12 @@ Pessoa desenfileira(FilaCircular *fila, int prioridade)
                 else
                 {
                     aux = temp;
+                    temp->frustracao++;
+                    if (temp->frustracao == 2)
+                    {
+                        temp->prioridade--;
+                        temp->frustracao = 0;
+                    }
                     temp = temp->proxima;
                 }
             }
