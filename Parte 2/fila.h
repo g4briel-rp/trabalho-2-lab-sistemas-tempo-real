@@ -127,7 +127,6 @@ void retornaTipoPessoa(FilaCircular *fila, int vet[])
     while (pessoa != fila->tras->proxima)
     {
         // onde tiver 1, significa que existe pessoa daquele tipo na fila
-        puts(pessoa->nome);
         if (pessoa->tipo == 1)
         {
             vet[0] = 1;
@@ -145,11 +144,6 @@ void retornaTipoPessoa(FilaCircular *fila, int vet[])
             vet[3] = 1;
         }
         pessoa = pessoa->proxima;
-    }
-
-    for (int i = 0; i < 4; i++)
-    {
-        printf("vet[%d]: %d\n", i, vet[i]);
     }
 }
 
@@ -201,16 +195,56 @@ Pessoa primeira_da_fila(FilaCircular *fila)
     return pessoa;
 }
 
-Pessoa desenfileira(FilaCircular *fila)
+Pessoa desenfileira(FilaCircular *fila, int prioridade)
 {
     Pessoa pessoaRemovida;
     if (!estaVazia(fila))
     {
-        Pessoa *temp = fila->frente;
-        fila->frente = fila->frente->proxima;
-        pessoaRemovida = *temp;
-        free(temp);
-        fila->tamanho--;
+        if (prioridade == -1) // -1 = DEADLOCK
+        {
+            Pessoa *temp = fila->frente;
+            fila->frente = fila->frente->proxima;
+            pessoaRemovida = *temp;
+            fila->tamanho--;
+        }
+        else
+        {
+            Pessoa *temp = fila->frente;
+            Pessoa *aux = NULL;
+
+            while (temp != fila->tras->proxima)
+            {
+                if (temp->prioridade == prioridade)
+                {
+                    break;
+                }
+                else
+                {
+                    aux = temp;
+                    temp = temp->proxima;
+                }
+            }
+
+            if (aux == NULL)
+            {
+                // se aux for NULL, significa que a pessoa a ser removida é a primeira da fila
+                fila->frente = fila->frente->proxima;
+            }
+            else if (temp == fila->tras)
+            {
+                // se temp for igual ao ultimo da fila, significa que a pessoa a ser removida é a ultima da fila
+                fila->tras = aux;
+                aux->proxima = NULL;
+            }
+            else
+            {
+                // se aux e temp forem diferentes de NULL, significa que a pessoa a ser removida está no meio da fila
+                aux->proxima = temp->proxima; // o anterior ao temp aponta para o proximo do temp
+            }
+
+            pessoaRemovida = *temp;
+            fila->tamanho--;
+        }
     }
     else
     {

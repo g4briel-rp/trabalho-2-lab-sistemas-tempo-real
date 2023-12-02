@@ -50,16 +50,109 @@ void *atender_pessoa(void *arg)
 
         printf("\n%s está verificando a fila.\n", p.nome);
 
-        retornaTipoPessoa(&fila, vet);
-        for (int i = 0; i < 4; i++)
-        {
-            printf("vet %d: %d\n", i, vet[i]);
-        }
-        break;
-
         sleep(atendimento);
 
-        Pessoa pessoa = desenfileira(&fila);
+        retornaTipoPessoa(&fila, vet);
+
+        printFila(&fila);
+
+        Pessoa pessoa;
+        // quando ocorrer DEADLOCK, atender o primeiro da fila
+        if (vet[0] == 1 && vet[1] == 0 && vet[2] == 0 && vet[3] == 0)
+        {
+            printf("A fila tem somente pessoas do tipo 1\n");
+            pessoa = desenfileira(&fila, 0);
+            vet[0] = 0;
+        }
+        else if (vet[0] == 0 && vet[1] == 1 && vet[2] == 0 && vet[3] == 0)
+        {
+            printf("A fila tem somente pessoas do tipo 2\n");
+            pessoa = desenfileira(&fila, 1);
+            vet[1] = 0;
+        }
+        else if (vet[0] == 0 && vet[1] == 0 && vet[2] == 1 && vet[3] == 0)
+        {
+            printf("A fila tem somente pessoas do tipo 3\n");
+            pessoa = desenfileira(&fila, 2);
+            vet[2] = 0;
+        }
+        else if (vet[0] == 0 && vet[1] == 0 && vet[2] == 0 && vet[3] == 1)
+        {
+            printf("A fila tem somente pessoas do tipo 4\n");
+            pessoa = desenfileira(&fila, 3);
+            vet[3] = 0;
+        }
+        else if (vet[0] == 1 && vet[1] == 1 && vet[2] == 0 && vet[3] == 0)
+        {
+            printf("A fila tem somente pessoas do tipo 1 e 2\n");
+            pessoa = desenfileira(&fila, 0);
+            vet[0] = 0;
+        }
+        else if (vet[0] == 1 && vet[1] == 0 && vet[2] == 1 && vet[3] == 0)
+        {
+            printf("A fila tem somente pessoas do tipo 1 e 3\n");
+            pessoa = desenfileira(&fila, 2);
+            vet[2] = 0;
+        }
+        else if (vet[0] == 1 && vet[1] == 0 && vet[2] == 0 && vet[3] == 1)
+        {
+            printf("A fila tem somente pessoas do tipo 1 e 4\n");
+            pessoa = desenfileira(&fila, 0);
+            vet[0] = 0;
+        }
+        else if (vet[0] == 0 && vet[1] == 1 && vet[2] == 1 && vet[3] == 0)
+        {
+            printf("A fila tem somente pessoas do tipo 2 e 3\n");
+            pessoa = desenfileira(&fila, 1);
+            vet[1] = 0;
+        }
+        else if (vet[0] == 0 && vet[1] == 1 && vet[2] == 0 && vet[3] == 1)
+        {
+            printf("A fila tem somente pessoas do tipo 2 e 4\n");
+            pessoa = desenfileira(&fila, 1);
+            vet[1] = 0;
+        }
+        else if (vet[0] == 0 && vet[1] == 0 && vet[2] == 1 && vet[3] == 1)
+        {
+            printf("A fila tem somente pessoas do tipo 3 e 4\n");
+            pessoa = desenfileira(&fila, 2);
+            vet[2] = 0;
+        }
+        else if (vet[0] == 1 && vet[1] == 1 && vet[2] == 1 && vet[3] == 0) // aqui é o DEADLOCK
+        {
+            printf("A fila tem somente pessoas do tipo 1, 2 e 3 - DEADLOCK\n");
+            pessoa = desenfileira(&fila, -1);
+            vet[0] = 0;
+            vet[1] = 0;
+            vet[2] = 0;
+        }
+        else if (vet[0] == 1 && vet[1] == 1 && vet[2] == 0 && vet[3] == 1)
+        {
+            printf("A fila tem somente pessoas do tipo 1, 2 e 4\n");
+            pessoa = desenfileira(&fila, 0);
+            vet[0] = 0;
+        }
+        else if (vet[0] == 1 && vet[1] == 0 && vet[2] == 1 && vet[3] == 1)
+        {
+            printf("A fila tem somente pessoas do tipo 1, 3 e 4\n");
+            pessoa = desenfileira(&fila, 2);
+            vet[2] = 0;
+        }
+        else if (vet[0] == 0 && vet[1] == 1 && vet[2] == 1 && vet[3] == 1)
+        {
+            printf("A fila tem somente pessoas do tipo 2, 3 e 4\n");
+            pessoa = desenfileira(&fila, 1);
+            vet[1] = 0;
+        }
+        else // AQUI TAMBEM TEM DEADLOCK
+        {
+            printf("A fila tem pessoas de todos os tipos de pessoas - DEADLOCK\n");
+            pessoa = desenfileira(&fila, -1);
+            vet[0] = 0;
+            vet[1] = 0;
+            vet[2] = 0;
+            vet[3] = 0;
+        }
 
         pthread_mutex_unlock(&mu);
 
