@@ -70,56 +70,6 @@ int estaNaFila(FilaCircular *fila, Pessoa pessoa)
     return 0;
 }
 
-int isDeadlock(FilaCircular *fila, Pessoa pessoa)
-{
-    /**
-     * antes de enfileirar a pessoa la no main, verifica-se se a inserção dela vai causar o DEADLOCK
-     * se sim, onde inseri-la ?
-     */
-    Pessoa *p;
-    int vet[3] = {0, 0, 0};
-
-    if (pessoa.tipo == 1)
-    {
-        vet[0] = 1;
-    }
-    else if (pessoa.tipo == 2)
-    {
-        vet[1] = 2;
-    }
-    else if (pessoa.tipo == 3)
-    {
-        vet[2] = 3;
-    }
-
-    while (p != fila->tras)
-    {
-        if (p->tipo == 1)
-        {
-            vet[0] = 1;
-        }
-        else if (p->tipo == 2)
-        {
-            vet[1] = 2;
-        }
-        else if (p->tipo == 3)
-        {
-            vet[2] = 3;
-        }
-        p = p->proxima;
-    }
-
-    if (vet[0] == 1 && vet[1] == 2 && vet[3] == 3)
-    {
-        printf("DeadLock aqui, rapaziada!!!\n");
-        return 1;
-    }
-    else
-    {
-        return 0;
-    }
-}
-
 void retornaTipoPessoa(FilaCircular *fila, int vet[])
 {
     Pessoa *pessoa = fila->frente;
